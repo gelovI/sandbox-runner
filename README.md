@@ -1,10 +1,7 @@
 # Sandbox Runner
 
 Eine moderne Multi-Language-Code-Execution-Plattform mit Kotlin, Docker, PostgreSQL, React und Monaco Editor.
-
-![Platform Preview](./docs/images/dashboard-preview.png)
-
----
+--
 
 # Übersicht
 
@@ -60,36 +57,43 @@ Beispiel:
 --pids-limit 64
 --cap-drop ALL
 --security-opt no-new-privileges
+```
 
-Sprachspezifische Runtime-Profile
-Sprache	Memory	Timeout	PID-Limit
-Python	128 MB	5 Sekunden	64
-JavaScript	128 MB	5 Sekunden	64
-Go	256 MB	15 Sekunden	128
-Java	512 MB	20 Sekunden	128
-Kotlin	1024 MB	45 Sekunden	128
-Modernes Full-Stack Dashboard
+## Sprachspezifische Runtime-Profile
 
-Frontend Features:
+| Sprache | Memory | Timeout | PID-Limit |
+|---|---|---|---|
+| Python | 128 MB | 5 Sekunden | 64 |
+| JavaScript | 128 MB | 5 Sekunden | 64 |
+| Go | 256 MB | 15 Sekunden | 128 |
+| Java | 512 MB | 20 Sekunden | 128 |
+| Kotlin | 1024 MB | 45 Sekunden | 128 |
 
-Monaco Editor
-Run History
-Run Details
-Live Statistics
-Multi-Language Execution
-Status-Indikatoren
-Responsives modernes UI
-Persistente Speicherung
+# Modernes Full-Stack Dashboard
 
-Alle Executions werden in PostgreSQL gespeichert:
+# Frontend Features:
 
-Execution Metadata
-Runtime Statistics
-stdout/stderr Logs
-Exit Codes
-Execution Duration
-Language Distribution
-Architektur
+- Monaco Editor
+- Run History
+- Run Details
+- Live Statistics
+- Multi-Language Execution
+- Status-Indikatoren
+- Responsives modernes UI
+- Persistente Speicherung
+
+# Alle Executions werden in PostgreSQL gespeichert:
+
+- Execution Metadata
+- Runtime Statistics
+- stdout/stderr Logs
+- Exit Codes
+- Execution Duration
+- Language Distribution
+
+# Architektur
+
+```text
 ┌──────────────────────────────┐
 │         Frontend             │
 │ React + TypeScript + Vite    │
@@ -111,7 +115,9 @@ Architektur
 │      Docker Sandbox          │
 │  Isolated Runtime Containers │
 └──────────────────────────────┘
-Tech Stack
+```
+
+# Tech Stack
 Backend
 Kotlin
 Ktor
