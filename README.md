@@ -80,9 +80,9 @@ Beispiel:
 - Multi-Language Execution
 - Status-Indikatoren
 - Responsives modernes UI
-- Persistente Speicherung
 
-# Alle Executions werden in PostgreSQL gespeichert:
+## Persistente Speicherung
+Alle Executions werden in PostgreSQL gespeichert:
 
 - Execution Metadata
 - Runtime Statistics
@@ -182,33 +182,50 @@ Beispiel:
 ```
 GET /api/runs
 ```
-Run Details abrufen
+## Run Details abrufen
+```
 GET /api/runs/{id}
-Plattform-Statistiken
+```
+
+## Plattform-Statistiken
+```
 GET /api/stats
-Projekt starten
-Voraussetzungen
-Docker Desktop
-Node.js 22+
-Java 21
-Gesamte Plattform starten
+```
+
+# Projekt starten
+## Voraussetzungen
+- Docker Desktop
+- Node.js 22+
+- Java 21
+- 
+## Gesamte Plattform starten
+```
 docker compose up --build
+```
 
 Frontend:
-
+```
 http://localhost:3000
+```
 
 Backend:
-
+```
 http://localhost:8080
-Beispiel-Ausführungen
-Python
+```
+
+# Beispiel-Ausführungen
+## Python
+```
 print("Hello from Python")
-Kotlin
+```
+## Kotlin
+```
 fun main() {
     println("Hello from Kotlin")
 }
-Go
+```
+## Go
+```
 package main
 
 import "fmt"
@@ -216,85 +233,74 @@ import "fmt"
 func main() {
     fmt.Println("Hello from Go")
 }
-Sicherheitskonzept
+```
 
+# Sicherheitskonzept
 Das Sandbox-System isoliert jede Ausführung bewusst vollständig.
 
-Isolation Strategy
-Kein gemeinsamer Runtime-State
-Kein Host-Netzwerk
-Temporäre Execution-Container
-Ressourcen-Limits via Docker
-Eingeschränkte Linux Capabilities
-Kontrollierte isolierte Execution
-Hinweis
-
+## Isolation Strategy
+- Kein gemeinsamer Runtime-State
+- Kein Host-Netzwerk
+- Temporäre Execution-Container
+- Ressourcen-Limits via Docker
+- Eingeschränkte Linux Capabilities
+- Kontrollierte isolierte Execution
+## Hinweis
 Dieses Projekt dient als Engineering-Showcase und Lernplattform.
 Es ersetzt keine vollständig gehärteten produktiven VM-/Container-Isolation-Systeme.
 
-Datenbankschema
+# Datenbankschema
 
 Haupttabelle:
-
+```
 code_runs
+```
 
 Speichert:
+- Execution ID
+- Sprache
+- Code
+- stdout
+- stderr
+- Execution Status
+- Runtime Duration
+- Timestamps
 
-Execution ID
-Sprache
-Code
-stdout
-stderr
-Execution Status
-Runtime Duration
-Timestamps
-Frontend Dashboard
+
+## Frontend Dashboard
 
 Features:
+- Monaco-basierter Editor
+- Scrollbare Run History
+- Runtime Statistics
+- Execution Details
+- Modernes Dark UI
+- Responsives Layout
 
-Monaco-basierter Editor
-Scrollbare Run History
-Runtime Statistics
-Execution Details
-Modernes Dark UI
-Responsives Layout
-Zukunftsideen
+## Zukunftsideen
 
 Mögliche Erweiterungen:
+- WebSocket Live Output Streaming
+- Kubernetes Deployment
+- GitHub OAuth Authentication
+- Multi-User Workspaces
+- Distributed Execution Nodes
+- Queue-basierte Worker
+- Rate Limiting
+- Audit Logging
+- WASM Runtime Support
 
-WebSocket Live Output Streaming
-Kubernetes Deployment
-GitHub OAuth Authentication
-Multi-User Workspaces
-Distributed Execution Nodes
-Queue-basierte Worker
-Rate Limiting
-Audit Logging
-WASM Runtime Support
-Warum dieses Projekt?
+## Warum dieses Projekt?
 
 Dieses Projekt demonstriert:
-
-Backend Architektur
-Docker Orchestrierung
-Infrastructure Engineering
-Full-Stack Development
-Sichere Sandbox-Ausführung
-Datenbank-Persistence
-Modernes Frontend Engineering
-Production-Oriented Thinking
-Screenshots
-Dashboard
-
-Füge hier Screenshots ein
-
-Execution Details
-
-Füge hier Screenshots ein
-
-Multi-Language Support
-
-Füge hier Screenshots ein
+- Backend Architektur
+- Docker Orchestrierung
+- Infrastructure Engineering
+- Full-Stack Development
+- Sichere Sandbox-Ausführung
+- Datenbank-Persistence
+- Modernes Frontend Engineering
+- Production-Oriented Thinking
 
 Autor
 
