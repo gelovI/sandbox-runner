@@ -197,7 +197,7 @@ GET /api/stats
 - Docker Desktop
 - Node.js 22+
 - Java 21
-- 
+
 ## Gesamte Plattform starten
 ```
 docker compose up --build
