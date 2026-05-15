@@ -1,0 +1,59 @@
+services:
+  kotlin-runner:
+    build:
+      context: ./docker/runners/kotlin
+      dockerfile: Dockerfile
+    image: sandbox-kotlin-runner:latest
+    profiles:
+      - runners
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sandbox-backend
+    ports:
+      - "8080:8080"
+    environment:
+      SANDBOX_CONTAINER_ROOT: /sandbox
+      SANDBOX_HOST_ROOT: C:/Users/ivang/sandbox-runner/sandbox
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: sandbox
+      DB_USER: sandbox
+      DB_PASSWORD: sandbox
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./sandbox:/sandbox
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: sandbox-postgres
+    environment:
+      POSTGRES_DB: sandbox
+      POSTGRES_USER: sandbox
+      POSTGRES_PASSWORD: sandbox
+    ports:
+      - "5432:5432"
+    volumes:
+      - sandbox-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sandbox -d sandbox"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sandbox-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  sandbox-postgres-data:

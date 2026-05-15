@@ -1,0 +1,31 @@
+# IDE
+.idea/
+*.iml
+
+# Build
+.gradle/
+build/
+out/
+dist/
+
+# Backend
+backend/.gradle/
+backend/build/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Env
+.env
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime sandbox files
+sandbox/
+
+# Logs
+*.log
