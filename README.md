@@ -302,6 +302,5 @@ Dieses Projekt demonstriert:
 - Modernes Frontend Engineering
 - Production-Oriented Thinking
 
-Autor
-
+## Autor
 Ivan Gelov
