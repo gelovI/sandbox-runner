@@ -1,3 +1,6 @@
+import org.gradle.jvm.application.tasks.CreateStartScripts
+import org.gradle.api.file.DuplicatesStrategy
+
 plugins {
     kotlin("jvm") version "2.0.21"
     application
@@ -41,4 +44,27 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql:10.20.1")
 
     implementation("org.jetbrains.exposed:exposed-java-time:0.56.0")
+
+    implementation("redis.clients:jedis:5.2.0")
+
+    implementation("io.ktor:ktor-server-sse-jvm")
+}
+
+tasks.register<CreateStartScripts>("workerStartScripts") {
+    mainClass.set("com.ivan.sandbox.app.WorkerApplicationKt")
+    applicationName = "sandbox-worker"
+    outputDir = file("$buildDir/scripts")
+    classpath = tasks.named<CreateStartScripts>("startScripts").get().classpath
+}
+
+tasks.named("installDist") {
+    dependsOn("workerStartScripts")
+}
+
+tasks.named<Sync>("installDist") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    from("$buildDir/scripts/sandbox-worker") {
+        into("bin")
+    }
 }

@@ -6,6 +6,7 @@ services:
     image: sandbox-kotlin-runner:latest
     profiles:
       - runners
+
   backend:
     build:
       context: ./backend
@@ -27,6 +28,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
 
   postgres:
     image: postgres:16-alpine
@@ -45,6 +48,12 @@ services:
       timeout: 3s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    container_name: sandbox-redis
+    ports:
+      - "6379:6379"
+
   frontend:
     build:
       context: ./frontend
@@ -54,6 +63,28 @@ services:
       - "3000:80"
     depends_on:
       - backend
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      SANDBOX_CONTAINER_ROOT: /sandbox
+      SANDBOX_HOST_ROOT: C:/Users/ivang/sandbox-runner/sandbox
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: sandbox
+      DB_USER: sandbox
+      DB_PASSWORD: sandbox
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./sandbox:/sandbox
+    command: [ "bin/sandbox-worker", "com.ivan.sandbox.app.WorkerApplicationKt" ]
 
 volumes:
   sandbox-postgres-data:

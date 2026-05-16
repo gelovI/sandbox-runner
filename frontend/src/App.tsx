@@ -3,7 +3,15 @@ import { Play, Activity } from "lucide-react";
 import "./index.css";
 import Editor from "@monaco-editor/react";
 
-type RunStatus = "SUCCESS" | "FAILED" | "TIMEOUT";
+type RunStatus =
+  | "QUEUED"
+  | "RUNNING"
+  | "SUCCESS"
+  | "FAILED"
+  | "TIMEOUT"
+  | "DEAD_LETTER"
+  | "CANCEL_REQUESTED"
+  | "CANCELLED";
 
 type RunSummary = {
   id: string;
@@ -12,6 +20,7 @@ type RunSummary = {
   exitCode: number | null;
   durationMs: number;
   createdAt: string;
+  workerId: string | null;
 };
 
 type RunDetail = RunSummary & {
@@ -30,9 +39,39 @@ type Stats = {
   languageDistribution: Record<string, number>;
 };
 
+type WorkerInfo = {
+  id: string;
+  activeJob: string | null;
+};
+
+type QueueStats = {
+  queuedRuns: number;
+  deadLetterRuns: number;
+  workersOnline: number;
+};
+
 function statusClass(status: RunStatus) {
-  if (status === "SUCCESS") return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
-  if (status === "TIMEOUT") return "bg-amber-500/15 text-amber-300 border-amber-500/30";
+  if (status === "SUCCESS")
+    return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
+
+  if (status === "RUNNING")
+    return "bg-cyan-500/15 text-cyan-300 border-cyan-500/30";
+
+  if (status === "QUEUED")
+    return "bg-slate-500/15 text-slate-300 border-slate-500/30";
+
+  if (status === "TIMEOUT")
+    return "bg-amber-500/15 text-amber-300 border-amber-500/30";
+
+  if (status === "CANCEL_REQUESTED")
+    return "bg-orange-500/15 text-orange-300 border-orange-500/30";
+
+  if (status === "CANCELLED")
+    return "bg-zinc-500/15 text-zinc-300 border-zinc-500/30";
+
+  if (status === "DEAD_LETTER")
+    return "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30";
+
   return "bg-red-500/15 text-red-300 border-red-500/30";
 }
 
@@ -55,8 +94,9 @@ export default function App() {
   const [code, setCode] = useState('print("Hello from Docker")');
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [selectedRun, setSelectedRun] = useState<RunDetail | null>(null);
-  const [isRunning, setIsRunning] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [workers, setWorkers] = useState<WorkerInfo[]>([]);
+  const [queueStats, setQueueStats] = useState<QueueStats | null>(null);
 
   async function loadRuns() {
     const response = await fetch("/api/runs?limit=20");
@@ -76,8 +116,19 @@ export default function App() {
     setStats(data);
   }
 
+  async function loadWorkers() {
+    const response = await fetch("/api/workers");
+    const data = await response.json();
+    setWorkers(data);
+  }
+
+  async function loadQueueStats() {
+    const response = await fetch("/api/queue/stats");
+    const data = await response.json();
+    setQueueStats(data);
+  }
+
   async function runCode() {
-    setIsRunning(true);
 
     try {
       const response = await fetch("/api/runs", {
@@ -89,17 +140,121 @@ export default function App() {
       });
 
       const data = await response.json();
-      setSelectedRun(data);
-      await loadRuns();
-      await loadStats();
-    } finally {
-      setIsRunning(false);
+
+      const queuedRun: RunSummary = {
+        id: data.id,
+        language,
+        status: data.status,
+        exitCode: null,
+        durationMs: 0,
+        createdAt: new Date().toISOString(),
+        workerId: null
+      };
+
+      setRuns((previous) => [queuedRun, ...previous]);
+
+      setSelectedRun({
+        id: data.id,
+        language,
+        code,
+        status: data.status,
+        stdout: "",
+        stderr: "",
+        exitCode: null,
+        durationMs: 0,
+        createdAt: new Date().toISOString(),
+        workerId: null
+      });
+
+      const eventSource = new EventSource(`/api/runs/${data.id}/events`);
+
+      eventSource.addEventListener("status", (event) => {
+        const eventData = JSON.parse(event.data);
+
+        setSelectedRun((previous) =>
+          previous ? { ...previous, status: eventData.status } : previous
+        );
+
+        setRuns((previous) =>
+          previous.map((run) =>
+            run.id === eventData.id
+              ? { ...run, status: eventData.status }
+              : run
+          )
+        );
+      });
+
+      eventSource.addEventListener("stdout", (event) => {
+        const chunk = JSON.parse(event.data);
+
+        setSelectedRun((previous) =>
+          previous ? { ...previous, stdout: previous.stdout + chunk } : previous
+        );
+      });
+
+      eventSource.addEventListener("stderr", (event) => {
+        const chunk = JSON.parse(event.data);
+
+        setSelectedRun((previous) =>
+          previous ? { ...previous, stderr: previous.stderr + chunk } : previous
+        );
+      });
+
+      eventSource.addEventListener("finished", async (event) => {
+        const eventData = JSON.parse(event.data);
+
+        setSelectedRun((previous) =>
+          previous
+            ? {
+                ...previous,
+                status: eventData.status,
+                stdout: eventData.stdout,
+                stderr: eventData.stderr,
+                exitCode: eventData.exitCode,
+                durationMs: eventData.durationMs,
+                workerId: eventData.workerId ?? previous.workerId
+              }
+            : previous
+        );
+
+        setRuns((previous) =>
+          previous.map((run) =>
+            run.id === eventData.id
+              ? {
+                  ...run,
+                  status: eventData.status,
+                  exitCode: eventData.exitCode,
+                  durationMs: eventData.durationMs,
+                  workerId: eventData.workerId
+                }
+              : run
+          )
+        );
+
+        eventSource.close();
+        await loadStats();
+      });
+
+      eventSource.onerror = () => {
+        eventSource.close();
+      };
+    } catch (error) {
+      console.error(error);
     }
   }
 
   useEffect(() => {
     loadRuns();
     loadStats();
+    loadWorkers();
+    loadQueueStats();
+
+    const interval = window.setInterval(() => {
+      loadWorkers();
+      loadQueueStats();
+    }, 2000);
+
+    return () => window.clearInterval(interval);
   }, []);
 
   return (
@@ -137,7 +292,40 @@ export default function App() {
             label="Languages"
             value={Object.keys(stats?.languageDistribution ?? {}).length}
           />
+
+          <MetricCard label="Workers Online" value={queueStats?.workersOnline ?? 0} />
+
+          <MetricCard label="Queued Jobs" value={queueStats?.queuedRuns ?? 0} />
+
+          <MetricCard label="Dead Letters" value={queueStats?.deadLetterRuns ?? 0} />
         </div>
+
+        <section className="mb-6 rounded-2xl border border-white/10 bg-white/5 p-5">
+          <h2 className="mb-4 text-xl font-semibold">Worker Status</h2>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            {workers.map((worker) => (
+              <div
+                key={worker.id}
+                className="rounded-xl border border-white/10 bg-slate-950/70 p-4"
+              >
+                <div className="font-mono text-xs text-slate-400">
+                  {worker.id.slice(0, 8)}
+                </div>
+
+                <div className="mt-2 text-sm">
+                  {worker.activeJob ? (
+                    <span className="text-cyan-300">
+                      Active: {worker.activeJob.slice(0, 8)}
+                    </span>
+                  ) : (
+                    <span className="text-emerald-300">Idle</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr] lg:items-stretch">
           <section className="flex h-[620px] flex-col rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl">
@@ -177,11 +365,10 @@ export default function App() {
 
             <button
               onClick={runCode}
-              disabled={isRunning}
               className="mt-4 inline-flex w-fit items-center gap-2 rounded-xl bg-cyan-400 px-6 py-3 font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Play size={18} />
-              {isRunning ? "Running..." : "Run in Docker"}
+              Run in Docker
             </button>
           </section>
 
@@ -205,6 +392,9 @@ export default function App() {
                   <div className="text-sm text-slate-300">
                     {run.language} · {run.durationMs} ms · exit {run.exitCode ?? "n/a"}
                   </div>
+                  <div className="mt-1 font-mono text-xs text-slate-500">
+                    worker {run.workerId ? run.workerId.slice(0, 8) : "pending"}
+                  </div>
                 </button>
               ))}
             </div>
@@ -213,11 +403,37 @@ export default function App() {
 
         {selectedRun && (
           <section className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Run Details</h2>
-              <span className={`rounded-full border px-3 py-1 text-sm ${statusClass(selectedRun.status)}`}>
-                {selectedRun.status}
-              </span>
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold">Run Details</h2>
+                <div className="mt-1 text-sm text-slate-400">
+                  Worker:{" "}
+                  <span className="font-mono text-slate-300">
+                    {selectedRun.workerId ?? "pending"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className={`rounded-full border px-3 py-1 text-sm ${statusClass(selectedRun.status)}`}>
+                  {selectedRun.status}
+                </span>
+
+                {(selectedRun.status === "QUEUED" ||
+                  selectedRun.status === "RUNNING" ||
+                  selectedRun.status === "CANCEL_REQUESTED") && (
+                  <button
+                    onClick={async () => {
+                      await fetch(`/api/runs/${selectedRun.id}/cancel`, {
+                        method: "POST"
+                      });
+                    }}
+                    className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-1 text-sm text-red-300 transition hover:bg-red-500/20"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
