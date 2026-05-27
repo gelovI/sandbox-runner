@@ -48,6 +48,9 @@ dependencies {
     implementation("redis.clients:jedis:5.2.0")
 
     implementation("io.ktor:ktor-server-sse-jvm")
+
+    implementation("io.micrometer:micrometer-registry-prometheus:1.13.6")
+    implementation("io.ktor:ktor-server-metrics-micrometer-jvm")
 }
 
 tasks.register<CreateStartScripts>("workerStartScripts") {

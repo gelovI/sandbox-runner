@@ -86,5 +86,26 @@ services:
       - ./sandbox:/sandbox
     command: [ "bin/sandbox-worker", "com.ivan.sandbox.app.WorkerApplicationKt" ]
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: sandbox-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - backend
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: sandbox-grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    volumes:
+      - sandbox-grafana-data:/var/lib/grafana
+
 volumes:
   sandbox-postgres-data:
+  sandbox-grafana-data:
